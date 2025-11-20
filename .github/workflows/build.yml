@@ -1,61 +1,89 @@
-name: Build luci-app-temp-status (OpenWrt 24.10.4 aarch64)
+name: build-packages
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
+    name: ${{ matrix.arch }}-${{ matrix.branch }} build
     runs-on: ubuntu-latest
-    env:
-      OPENWRT_TAG: "v24.10.4"                # OpenWrt 源码 tag（或分支）
-      TARGET: "aarch64_cortex-a53"           # 你给定的 target
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - arm_cortex-a5_vfpv4
+          - arm_cortex-a7_neon-vfpv4
+          - arm_cortex-a8_vfpv3
+          - arm_cortex-a9
+          - arm_cortex-a9_vfpv3-d16
+          - arm_cortex-a9_neon
+          - arm_cortex-a15_neon-vfpv4
+          - aarch64_cortex-a53
+          - aarch64_cortex-a72
+          - aarch64_cortex-a76
+          - aarch64_generic
+          - mips_24kc
+          - mips_4kec
+          - mips_mips32
+          - mipsel_24kc
+          - mipsel_24kc_24kf
+          - mipsel_74kc
+          - mipsel_mips32
+          - mips64_octeonplus
+          - i386_pentium4
+          - x86_64
+        branch:
+          - openwrt-23.05
+          - openwrt-24.10
+          - SNAPSHOT
+        exclude:
+          - arch: aarch64_cortex-a76
+            branch: openwrt-23.05
+          - arch: mips_4kec
+            branch: SNAPSHOT
+
     steps:
-      - name: Checkout this repo (workflow)
+      - name: checkout
         uses: actions/checkout@v4
 
-      - name: Checkout luci-app-temp-status repo
+      - name: Checkout package repo Kakile/luci-app-temp
         uses: actions/checkout@v4
         with:
-          repository: gSpotx2f/luci-app-temp-status
-          path: luci-app-temp-status
+          repository: Kakile/luci-app-temp
+          path: package/luci-app-temp
 
-      - name: Install build dependencies (host)
+      - name: Install host build dependencies (fix python3-distutils)
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential git-core libncurses5-dev gawk gettext libssl-dev xsltproc \
-            unzip python3 python3-distutils python3-setuptools subversion
+          sudo apt-get install -y software-properties-common || true
+          sudo add-apt-repository -y universe || true
+          sudo apt-get update
 
-      - name: Clone OpenWrt source
-        run: |
-          git clone --depth 1 --branch ${OPENWRT_TAG} https://github.com/openwrt/openwrt openwrt-src
-          cd openwrt-src
-          git status --porcelain || true
+          # 基本依赖
+          sudo apt-get install -y build-essential git-core libncurses5-dev gawk gettext libssl-dev \
+            xsltproc unzip python3 python3-setuptools python3-pip || true
 
-      - name: Copy package into OpenWrt tree
-        run: |
-          cp -r luci-app-temp-status openwrt-src/package/luci-app-temp-status
-          ls -la openwrt-src/package/luci-app-temp-status
+          # 尝试安装 distutils，若通用包不可用则尝试常见具体版本
+          if ! sudo apt-get install -y python3-distutils; then
+            sudo apt-get install -y python3.11-distutils python3.10-distutils || true
+          fi
 
-      - name: Update feeds and install
-        working-directory: openwrt-src
-        run: |
-          ./scripts/feeds update -a || true
-          ./scripts/feeds install -a || true
+          # 调试输出
+          python3 --version
+          python3 -m pip --version || true
+          apt-cache policy python3-distutils || true
+          apt-cache search python3.*distutils || true
 
-      - name: Prepare default config for target (optional)
-        working-directory: openwrt-src
-        run: |
-          # 这里不做完整 .config 配置，仅用于编译单个包
-          # 若需要交叉编译完整固件，请准备合适的 .config
-          make defconfig || true
+      - name: build
+        uses: openwrt/gh-action-sdk@main
+        env:
+          ARCH: ${{ matrix.arch }}-${{ matrix.branch }}
+          FEEDNAME: nikki
+          PACKAGES: luci-app-temp
+          NO_REFRESH_CHECK: true
 
-      - name: Compile luci-app-temp-status package
-        working-directory: openwrt-src
-        run: |
-          # 只编译指定包（会触发 host 工具构建，通常会生成 i18n 的 .lmo）
-          make package/luci-app-temp-status/compile V=s
-
-      - name: Collect built ipk files
-        working-directory: openwrt-src
-        run: |
-          find bin -type f -name "*luci-app-temp-status*.ipk" -print || true
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-temp_${{ matrix.arch }}-${{ matrix.branch }}
+          path: bin/packages/${{ matrix.arch }}/luci-app-temp
