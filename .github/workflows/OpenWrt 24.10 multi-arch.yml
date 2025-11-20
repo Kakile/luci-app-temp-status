@@ -11,20 +11,12 @@ jobs:
       fail-fast: false
       matrix:
         arch:
-          - arm_cortex-a5_vfpv4
           - arm_cortex-a7_neon-vfpv4
-          - arm_cortex-a8_vfpv3
-          - arm_cortex-a9
-          - arm_cortex-a9_vfpv3-d16
-          - arm_cortex-a9_neon
-          - arm_cortex-a15_neon-vfpv4
           - aarch64_cortex-a53
           - aarch64_cortex-a72
           - aarch64_cortex-a76
           - aarch64_generic
           - mips_24kc
-          - mips_4kec
-          - mips_mips32
           - mipsel_24kc
           - mipsel_24kc_24kf
           - mipsel_74kc
@@ -53,6 +45,7 @@ jobs:
           FEEDNAME: tempstatus
           PACKAGES: luci-app-temp-status
           NO_REFRESH_CHECK: true
+          NO_DOWNLOAD: true   # 跳过 download 阶段，避免报错
 
       - name: upload
         uses: actions/upload-artifact@v4
