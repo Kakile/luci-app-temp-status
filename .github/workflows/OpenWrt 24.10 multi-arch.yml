@@ -1,4 +1,4 @@
-name: Build-Packages
+name: build-packages
 
 on:
   workflow_dispatch:
@@ -11,9 +11,14 @@ jobs:
       fail-fast: false
       matrix:
         arch:
+          - arm_cortex-a7_neon-vfpv4
           - aarch64_cortex-a53
-          - x86_64
+          - aarch64_cortex-a72
+          - aarch64_cortex-a76
+          - aarch64_generic
           - mipsel_24kc
+          - mips64_octeonplus
+          - x86_64
         branch:
           - openwrt-23.05
           - openwrt-24.10
@@ -23,8 +28,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
-      # 如果你的仓库根目录就是 Makefile + htdocs/po/root，
-      # 需要把它们移动到一个子目录，保证 SDK 能识别为包
+      # 如果仓库根目录就是 Makefile + htdocs/po/root，需要移动到子目录
       - name: prepare package dir
         run: |
           mkdir -p luci-app-temp-status
@@ -42,10 +46,18 @@ jobs:
           NO_REFRESH_CHECK: true
           NO_DOWNLOAD: true
 
-      - name: upload
+      - name: list outputs
+        run: |
+          echo "Listing bin/packages:"
+          ls -R bin/packages || true
+
+      - name: upload artifacts (ipk/apk auto-detect)
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-temp-status_${{ matrix.arch }}-${{ matrix.branch }}
           path: |
             bin/packages/${{ matrix.arch }}/tempstatus/luci-app-temp-status*.ipk
             bin/packages/${{ matrix.arch }}/tempstatus/luci-i18n-temp-status-*.ipk
+            bin/packages/${{ matrix.arch }}/tempstatus/luci-app-temp-status*.apk
+            bin/packages/${{ matrix.arch }}/tempstatus/luci-i18n-temp-status-*.apk
+          if-no-files-found: warn
