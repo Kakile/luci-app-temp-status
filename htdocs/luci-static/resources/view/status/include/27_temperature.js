@@ -289,38 +289,16 @@ return baseclass.extend({
 
 	render(data) {
 		if(data) {
-			if(!this.sensorsData) {
+			if (!this.sensorsData) {
 				this.sensorsData = data.sensors;
 				this.sensorsPath = data.temp && new Array(...Object.keys(data.temp));
-			};
+			}
 			this.tempData = data.temp;
-		};
-
-		if(!this.sensorsData || !this.tempData) {
-			return;
-		};
-
-		this.makeTempTableContent();
-
-		let children = [];
-		if (this.hiddenItems.size > 0) {
-			children.push(
-				E('div',
-				  { 'style': 'margin-bottom:1em; padding:0 4px;' },
-				  E('span', {
-					  'class': 'temp-status-unhide-all',
-					  'href': 'javascript:void(0)',
-					  'click': () => this.unhideAllItems(),
-				  }, [
-					  _('Show hidden sensors'),
-					  ' (',
-					  E('span', { 'id': 'temp-status-hnum' }, this.hiddenItems.size),
-					  ')',
-				     ])
-				 )
-			);
 		}
-		children.push(this.tempTable);
-		return E('div', { 'class': 'cbi-section' }, children);
+		if (!this.sensorsData || !this.tempData) {
+			return;
+		}
+		this.makeTempTableContent();
+		return E('div', { 'class': 'cbi-section' }, [ this.tempTable ]);
 	}
 });
