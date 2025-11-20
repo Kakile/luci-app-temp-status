@@ -275,22 +275,25 @@ return baseclass.extend({
 
 		this.makeTempTableContent();
 
-		return E('div', { 'class': 'cbi-section' }, [
-			(this.hiddenItems.size > 0) ? 
-			E('div',
-				{ 'style': 'margin-bottom:1em; padding:0 4px;' },
-				E('span', {
-					'class': 'temp-status-unhide-all',
-					'href' : 'javascript:void(0)',
-					'click': () => this.unhideAllItems(),
-				}, [
-					_('Show hidden sensors'),
-					' (',
-					E('span', { 'id': 'temp-status-hnum' }, this.hiddenItems.size),
-					')',
-				])
-			) : null,
-			this.tempTable,
-		]);
-	},
+		let children = [];
+		if (this.hiddenItems.size > 0) {
+			children.push(
+				E('div',
+				  { 'style': 'margin-bottom:1em; padding:0 4px;' },
+				  E('span', {
+					  'class': 'temp-status-unhide-all',
+					  'href': 'javascript:void(0)',
+					  'click': () => this.unhideAllItems(),
+				  }, [
+					  _('Show hidden sensors'),
+					  ' (',
+					  E('span', { 'id': 'temp-status-hnum' }, this.hiddenItems.size),
+					  ')',
+				     ])
+				 )
+			);
+		}
+		children.push(this.tempTable);
+		return E('div', { 'class': 'cbi-section' }, children);
+	}
 });
