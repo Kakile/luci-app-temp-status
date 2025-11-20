@@ -39,8 +39,10 @@ jobs:
           make defconfig
           make package/luci-app-temp-status/compile V=s
 
-      - name: Upload artifacts
+      - name: Upload artifacts (main + i18n)
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-temp-status_aarch64_cortex-a53
-          path: openwrt-sdk/bin/packages/*/*/*luci-app-temp-status*.ipk
+          path: |
+            openwrt-sdk/bin/packages/*/*/*luci-app-temp-status*.ipk
+            openwrt-sdk/bin/packages/*/*/*luci-i18n-*.ipk
