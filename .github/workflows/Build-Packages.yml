@@ -1,4 +1,4 @@
-name: Build-Packages mediatek filogic
+name: Build-Packages
 
 on:
   workflow_dispatch:
