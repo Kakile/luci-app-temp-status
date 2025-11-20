@@ -20,6 +20,7 @@ jobs:
           - arch: aarch64_cortex-a53
             target: mediatek
             subtarget: filogic
+          # 你可以继续扩展更多 target/subtarget
 
     steps:
       - name: Checkout workflow repo
@@ -43,9 +44,11 @@ jobs:
       - name: Prepare build environment
         working-directory: openwrt-src
         run: |
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
+          # 只更新 luci 和 packages feed，避免 telephony 出错
+          ./scripts/feeds update luci packages
+          ./scripts/feeds install luci packages
           cp -r ../luci-app-temp-status package/luci-app-temp-status
+          # 设置目标架构
           echo "CONFIG_TARGET_${{ matrix.target }}=y" >> .config
           echo "CONFIG_TARGET_${{ matrix.target }}_${{ matrix.subtarget }}=y" >> .config
           make defconfig
@@ -60,10 +63,15 @@ jobs:
         run: |
           make package/luci-app-temp-status/compile V=s
 
+      - name: List build outputs
+        working-directory: openwrt-src
+        run: |
+          ls -R bin/packages || true
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-temp-status_${{ matrix.arch }}-openwrt-24.10
           path: |
-            openwrt-src/bin/packages/*/*/*luci-app-temp-status*.ipk
-            openwrt-src/bin/packages/*/*/*luci-i18n-*.ipk
+            openwrt-src/bin/packages/*/*/luci-app-temp-status*.ipk
+            openwrt-src/bin/packages/*/*/luci-i18n-*.ipk
