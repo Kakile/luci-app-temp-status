@@ -233,21 +233,47 @@ return baseclass.extend({
 		this.hiddenItems.add(path);
 		this.saveSettingsToLocalStorage();
 		this.makeTempTableContent();
-		let hnum = document.getElementById('temp-status-hnum');
-		if (hnum) {
-			hnum.textContent = this.hiddenItems.size;
-		}
+		this.updateHiddenButton(); 
 	},
 
 	unhideAllItems() {
 		this.hiddenItems.clear();
 		this.saveSettingsToLocalStorage();
 		this.makeTempTableContent();
-		let hnum = document.getElementById('temp-status-hnum');
-		if (hnum) {
-			hnum.textContent = this.hiddenItems.size;
-		}
+		this.updateHiddenButton();
 	},
+
+	updateHiddenButton() {
+		let btn = document.querySelector('.temp-status-unhide-all');
+		if (this.hiddenItems.size > 0) {
+			if (!btn) {
+				let section = document.querySelector('.cbi-section');
+				if (section) {
+					section.insertBefore(
+						E('div',
+						  { 'style': 'margin-bottom:1em; padding:0 4px;' },
+						  E('span', {
+							  'class': 'temp-status-unhide-all',
+							  'href': 'javascript:void(0)',
+							  'click': () => this.unhideAllItems(),
+						  }, [
+							  _('Show hidden sensors'),
+							  ' (',
+							  E('span', { 'id': 'temp-status-hnum' }, this.hiddenItems.size),
+							  ')',
+						  ])
+						),
+						section.firstChild
+					);
+				}
+			} else {
+				let hnum = document.getElementById('temp-status-hnum');
+				if (hnum) hnum.textContent = this.hiddenItems.size;
+			}
+		} else {
+			if (btn) btn.remove();
+			}
+	}
 
 	load() {
 		this.restoreSettingsFromLocalStorage();
