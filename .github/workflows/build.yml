@@ -1,89 +1,45 @@
-name: build-packages
+name: Build luci-app-temp-status (OpenWrt 24.10.4 mediatek filogic)
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: ${{ matrix.arch }}-${{ matrix.branch }} build
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch:
-          - arm_cortex-a5_vfpv4
-          - arm_cortex-a7_neon-vfpv4
-          - arm_cortex-a8_vfpv3
-          - arm_cortex-a9
-          - arm_cortex-a9_vfpv3-d16
-          - arm_cortex-a9_neon
-          - arm_cortex-a15_neon-vfpv4
-          - aarch64_cortex-a53
-          - aarch64_cortex-a72
-          - aarch64_cortex-a76
-          - aarch64_generic
-          - mips_24kc
-          - mips_4kec
-          - mips_mips32
-          - mipsel_24kc
-          - mipsel_24kc_24kf
-          - mipsel_74kc
-          - mipsel_mips32
-          - mips64_octeonplus
-          - i386_pentium4
-          - x86_64
-        branch:
-          - openwrt-23.05
-          - openwrt-24.10
-          - SNAPSHOT
-        exclude:
-          - arch: aarch64_cortex-a76
-            branch: openwrt-23.05
-          - arch: mips_4kec
-            branch: SNAPSHOT
-
     steps:
-      - name: checkout
+      - name: Checkout workflow repo
         uses: actions/checkout@v4
 
-      - name: Checkout package repo Kakile/luci-app-temp
+      - name: Checkout luci-app-temp-status
         uses: actions/checkout@v4
         with:
-          repository: Kakile/luci-app-temp
-          path: package/luci-app-temp
+          repository: Kakile/luci-app-temp-status
+          path: luci-app-temp-status
 
-      - name: Install host build dependencies (fix python3-distutils)
+      - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y software-properties-common || true
-          sudo add-apt-repository -y universe || true
-          sudo apt-get update
+          sudo apt-get install -y build-essential git-core libncurses5-dev gawk gettext libssl-dev xsltproc unzip zstd
 
-          # 基本依赖
-          sudo apt-get install -y build-essential git-core libncurses5-dev gawk gettext libssl-dev \
-            xsltproc unzip python3 python3-setuptools python3-pip || true
+      - name: Download OpenWrt SDK (24.10.4 mediatek filogic)
+        run: |
+          wget -qO sdk.tar.zst https://downloads.openwrt.org/releases/24.10.4/targets/mediatek/filogic/openwrt-sdk-24.10.4-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+          tar --use-compress-program=unzstd -xf sdk.tar.zst
+          mv openwrt-sdk-* openwrt-sdk
 
-          # 尝试安装 distutils，若通用包不可用则尝试常见具体版本
-          if ! sudo apt-get install -y python3-distutils; then
-            sudo apt-get install -y python3.11-distutils python3.10-distutils || true
-          fi
+      - name: Copy package into SDK
+        run: |
+          cp -r luci-app-temp-status openwrt-sdk/package/luci-app-temp-status
 
-          # 调试输出
-          python3 --version
-          python3 -m pip --version || true
-          apt-cache policy python3-distutils || true
-          apt-cache search python3.*distutils || true
+      - name: Build luci-app-temp-status
+        working-directory: openwrt-sdk
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          make package/luci-app-temp-status/compile V=s
 
-      - name: build
-        uses: openwrt/gh-action-sdk@main
-        env:
-          ARCH: ${{ matrix.arch }}-${{ matrix.branch }}
-          FEEDNAME: nikki
-          PACKAGES: luci-app-temp
-          NO_REFRESH_CHECK: true
-
-      - name: upload
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: luci-app-temp_${{ matrix.arch }}-${{ matrix.branch }}
-          path: bin/packages/${{ matrix.arch }}/luci-app-temp
+          name: luci-app-temp-status_aarch64_cortex-a53
+          path: openwrt-sdk/bin/packages/*/base/*luci-app-temp-status*.ipk
