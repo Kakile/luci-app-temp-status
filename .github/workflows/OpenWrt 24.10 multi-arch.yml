@@ -1,4 +1,4 @@
-name: build-packages
+name: Build-Packages
 
 on:
   workflow_dispatch:
@@ -11,32 +11,27 @@ jobs:
       fail-fast: false
       matrix:
         arch:
-          - arm_cortex-a7_neon-vfpv4
           - aarch64_cortex-a53
-          - aarch64_cortex-a72
-          - aarch64_cortex-a76
-          - aarch64_generic
-          - mips_24kc
-          - mipsel_24kc
-          - mipsel_24kc_24kf
-          - mipsel_74kc
-          - mipsel_mips32
-          - mips64_octeonplus
-          - i386_pentium4
           - x86_64
+          - mipsel_24kc
         branch:
           - openwrt-23.05
           - openwrt-24.10
           - SNAPSHOT
-        exclude:
-          - arch: aarch64_cortex-a76
-            branch: openwrt-23.05
-          - arch: mips_4kec
-            branch: SNAPSHOT
 
     steps:
       - name: checkout
         uses: actions/checkout@v4
+
+      # 如果你的仓库根目录就是 Makefile + htdocs/po/root，
+      # 需要把它们移动到一个子目录，保证 SDK 能识别为包
+      - name: prepare package dir
+        run: |
+          mkdir -p luci-app-temp-status
+          mv Makefile luci-app-temp-status/
+          mv htdocs luci-app-temp-status/ || true
+          mv po luci-app-temp-status/ || true
+          mv root luci-app-temp-status/ || true
 
       - name: build
         uses: openwrt/gh-action-sdk@main
@@ -45,7 +40,7 @@ jobs:
           FEEDNAME: tempstatus
           PACKAGES: luci-app-temp-status
           NO_REFRESH_CHECK: true
-          NO_DOWNLOAD: true   # 跳过 download 阶段，避免报错
+          NO_DOWNLOAD: true
 
       - name: upload
         uses: actions/upload-artifact@v4
