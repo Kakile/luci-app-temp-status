@@ -1,4 +1,4 @@
-name: Build luci-app-temp-status use SDK
+name: Build luci-app-temp-status mediatek filogic
 
 on:
   workflow_dispatch:
