@@ -233,14 +233,20 @@ return baseclass.extend({
 		this.hiddenItems.add(path);
 		this.saveSettingsToLocalStorage();
 		this.makeTempTableContent();
-		document.getElementById('temp-status-hnum').textContent = this.hiddenItems.size;
+		let hnum = document.getElementById('temp-status-hnum');
+		if (hnum) {
+			hnum.textContent = this.hiddenItems.size;
+		}
 	},
 
 	unhideAllItems() {
 		this.hiddenItems.clear();
 		this.saveSettingsToLocalStorage();
 		this.makeTempTableContent();
-		document.getElementById('temp-status-hnum').textContent = this.hiddenItems.size;
+		let hnum = document.getElementById('temp-status-hnum');
+		if (hnum) {
+			hnum.textContent = this.hiddenItems.size;
+		}
 	},
 
 	load() {
