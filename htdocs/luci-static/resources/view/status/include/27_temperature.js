@@ -2,7 +2,7 @@
 'require baseclass';
 'require rpc';
 
-document.head.append(E('style', {'type': 'text/css'},
+document.head.append(E('style', { 'type': 'text/css' },
 `
 :root {
 	--app-temp-status-font-color: #2e2e2e;
@@ -18,8 +18,20 @@ document.head.append(E('style', {'type': 'text/css'},
 	background-color: var(--app-temp-status-hot-color) !important;
 	color: var(--app-temp-status-font-color) !important;
 }
+.temp-status-hot .td {
+	color: var(--app-temp-status-font-color) !important;
+}
+.temp-status-hot td {
+	color: var(--app-temp-status-font-color) !important;
+}
 .temp-status-overheat {
 	background-color: var(--app-temp-status-overheat-color) !important;
+	color: var(--app-temp-status-font-color) !important;
+}
+.temp-status-overheat .td {
+	color: var(--app-temp-status-font-color) !important;
+}
+.temp-status-overheat td {
 	color: var(--app-temp-status-font-color) !important;
 }
 .temp-status-unhide-all {
@@ -46,12 +58,6 @@ document.head.append(E('style', {'type': 'text/css'},
 .temp-status-hide-item:hover {
 	opacity: 1.0;
 }
-/* 改用 Flex 布局保证右侧按钮居中对齐 */
-.td.right {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-}
 `));
 
 return baseclass.extend({
@@ -60,15 +66,20 @@ return baseclass.extend({
 	viewName    : 'temp_status',
 
 	tempHot     : 95,
+
 	tempOverheat: 105,
 
 	sensorsData : null,
+
 	tempData    : null,
+
 	sensorsPath : [],
 
 	hiddenItems : new Set(),
 
+	// 容器引用
 	section     : null,
+
 	tempTable   : E('table', { 'class': 'table' }),
 
 	callSensors : rpc.declare({
@@ -106,34 +117,41 @@ return baseclass.extend({
 
 	makeTempTableContent() {
 		this.tempTable.innerHTML = '';
+
+		// 表头：Sensor + 动态按钮
+		let sensorHeader = E('th', { 'class': 'th left', 'width': '33%' }, _('Sensor'));
+
+		if (this.hiddenItems.size > 0) {
+			let btn = E('span', {
+				'class': 'temp-status-unhide-all',
+				'href': 'javascript:void(0)',
+				'click': () => this.unhideAllItems(),
+			}, [
+				_('Show hidden sensors'),
+				' (',
+				E('span', { 'id': 'temp-status-hnum' }, this.hiddenItems.size),
+				')',
+			]);
+			sensorHeader.appendChild(btn);
+		}
+
 		this.tempTable.append(
 			E('tr', { 'class': 'tr table-titles' }, [
-				E('th', { 'class': 'th left', 'width': '33%' },
-					E('div', { 'style': 'display:flex; align-items:center; justify-content:space-between;' }, [
-						E('span', {}, _('Sensor')),
-						(this.hiddenItems.size > 0) ?
-							E('span', {
-								'class': 'temp-status-unhide-all',
-								'click': () => this.unhideAllItems(),
-							}, _('Show hidden sensors') + ' (' + this.hiddenItems.size + ')')
-						: null
-					])
-				),
+				sensorHeader,
 				E('th', { 'class': 'th left' }, _('Temperature')),
-				E('th', { 'class': 'th right', 'width': '1%' }, ' ')
+				E('th', { 'class': 'th right', 'width': '1%' }, ' '),
 			])
 		);
 
 		if (this.sensorsData && this.tempData) {
 			for (let [k, v] of Object.entries(this.sensorsData)) {
-				// v 是对象，不能直接 sort，需要转成数组
-				let arr = Object.values(v).sort(this.sortFunc);
+				v.sort(this.sortFunc);
 
-				for (let i of arr) {
+				for (let i of Object.values(v)) {
 					let sensor = i.title || i.item;
+
 					if (i.sources === undefined) continue;
 
-					// sources 是数组，可以直接 sort
 					i.sources.sort(this.sortFunc);
 
 					for (let j of i.sources) {
@@ -181,11 +199,25 @@ return baseclass.extend({
 								'class'    : 'tr' + rowStyle,
 								'data-path': j.path ,
 							}, [
-								E('td', { 'class': 'td left' }, name),
-								E('td', { 'class': 'td left' },
+								E('td', {
+										'class'     : 'td left',
+										'data-title': _('Sensor')
+									},
+									(tpointsString.length > 0) ?
+									`<span style="cursor:help; border-bottom:1px dotted" data-tooltip="${tpointsString}">${name}</span>` :
+									name
+								),
+								E('td', {
+										'class'     : 'td left',
+										'data-title': _('Temperature')
+									},
 									(temp === undefined || temp === null) ? '-' : temp + ' °C'
 								),
-								E('td', { 'class': 'td right' },
+								E('td', {
+										'class'     : 'td right',
+										'data-title': _('Hide'),
+										'title'     : _('Hide'),
+									},
 									E('span', {
 										'class': 'temp-status-hide-item',
 										'title': _('Hide'),
@@ -202,7 +234,7 @@ return baseclass.extend({
 		if (this.tempTable.childNodes.length == 1) {
 			this.tempTable.append(
 				E('tr', { 'class': 'tr placeholder' },
-					E('td', { 'class': 'td', 'colspan': 3 },
+					E('td', { 'class': 'td' },
 						E('em', {}, _('No temperature sensors available'))
 					)
 				)
@@ -223,37 +255,34 @@ return baseclass.extend({
 	},
 
 	load() {
-		return Promise.all([
-			this.callSensors(),
-		]).then(([sensors]) => {
-			this.sensorsData = sensors;
-			this.sensorsPath = [];
-
-			for (let [k, v] of Object.entries(sensors)) {
-				for (let i of Object.values(v)) {
-					if (i.sources === undefined) continue;
-					for (let j of i.sources) {
-						this.sensorsPath.push(j.path);
-					}
-				}
-			}
-
-			return this.callTempData(this.sensorsPath);
-		}).then((tempData) => {
-			this.tempData = tempData;
-		});
+		this.restoreSettingsFromLocalStorage();
+		if (this.sensorsData) {
+			return (this.sensorsPath.length > 0) ?
+				L.resolveDefault(this.callTempData(this.sensorsPath), null) :
+				new Promise(r => r(null));
+		} else {
+			return L.resolveDefault(this.callSensors(), null);
+		}
 	},
 
-	render() {
-		this.restoreSettingsFromLocalStorage();
+	render(data) {
+		if (data) {
+			if (!this.sensorsData) {
+				this.sensorsData = data.sensors;
+				this.sensorsPath = data.temp && new Array(...Object.keys(data.temp));
+			}
+			this.tempData = data.temp;
+		}
 
-		this.section = E('div', { 'class': 'cbi-section' }, [
-			E('h3', {}, _('Temperature status')),
-			this.tempTable
-		]);
+		if (!this.sensorsData || !this.tempData) {
+			return;
+		}
+
+		if (!this.section) {
+			this.section = E('div', { 'class': 'cbi-section' }, [ this.tempTable ]);
+		}
 
 		this.makeTempTableContent();
-
 		return this.section;
 	}
 });
