@@ -126,12 +126,14 @@ return baseclass.extend({
 
 		if (this.sensorsData && this.tempData) {
 			for (let [k, v] of Object.entries(this.sensorsData)) {
-				v.sort(this.sortFunc);
+				// v 是对象，不能直接 sort，需要转成数组
+				let arr = Object.values(v).sort(this.sortFunc);
 
-				for (let i of Object.values(v)) {
+				for (let i of arr) {
 					let sensor = i.title || i.item;
 					if (i.sources === undefined) continue;
 
+					// sources 是数组，可以直接 sort
 					i.sources.sort(this.sortFunc);
 
 					for (let j of i.sources) {
@@ -179,11 +181,11 @@ return baseclass.extend({
 								'class'    : 'tr' + rowStyle,
 								'data-path': j.path ,
 							}, [
-								E('td', { 'class': 'td left', 'title': _('Sensor') }, name),
-								E('td', { 'class': 'td left', 'title': _('Temperature') },
+								E('td', { 'class': 'td left' }, name),
+								E('td', { 'class': 'td left' },
 									(temp === undefined || temp === null) ? '-' : temp + ' °C'
 								),
-								E('td', { 'class': 'td right', 'title': _('Hide') },
+								E('td', { 'class': 'td right' },
 									E('span', {
 										'class': 'temp-status-hide-item',
 										'title': _('Hide'),
