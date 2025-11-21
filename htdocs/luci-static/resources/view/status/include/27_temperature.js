@@ -42,6 +42,8 @@ document.head.append(E('style', { 'type': 'text/css' },
 	border: 1px dotted;
 	border-radius: 4px;
 	opacity: 0.7;
+	font-weight: normal;   /* 不加粗 */
+	font-size: 0.625em;     /* 字号比 Sensor 小 */
 }
 .temp-status-unhide-all:hover {
 	opacity: 0.9;
@@ -66,18 +68,14 @@ return baseclass.extend({
 	viewName    : 'temp_status',
 
 	tempHot     : 95,
-
 	tempOverheat: 105,
 
 	sensorsData : null,
-
 	tempData    : null,
-
 	sensorsPath : [],
-
 	hiddenItems : new Set(),
 
-	// 容器引用
+	// 持久容器引用
 	section     : null,
 
 	tempTable   : E('table', { 'class': 'table' }),
@@ -278,11 +276,14 @@ return baseclass.extend({
 			return;
 		}
 
+		// 创建并持久化 section 容器引用
 		if (!this.section) {
 			this.section = E('div', { 'class': 'cbi-section' }, [ this.tempTable ]);
 		}
 
+		// 渲染表格
 		this.makeTempTableContent();
+
 		return this.section;
 	}
 });
