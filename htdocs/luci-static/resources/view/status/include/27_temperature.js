@@ -43,7 +43,7 @@ document.head.append(E('style', { 'type': 'text/css' },
 	border-radius: 4px;
 	opacity: 0.7;
 	font-weight: normal;   /* 不加粗 */
-	font-size: 0.9375em;     /* 字号比 Sensor 小 */
+	font-size: 0.9em;     /* 字号比 Sensor 小 */
 }
 .temp-status-unhide-all:hover {
 	opacity: 0.9;
