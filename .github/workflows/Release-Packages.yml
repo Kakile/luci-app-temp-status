@@ -47,14 +47,16 @@ jobs:
           NO_REFRESH_CHECK: true
           NO_DOWNLOAD: true
 
+      - name: package artifacts
+        run: |
+          mkdir -p dist/${{ matrix.arch }}-${{ matrix.branch }}
+          cp bin/packages/${{ matrix.arch }}/tempstatus/* dist/${{ matrix.arch }}-${{ matrix.branch }}/ || true
+          tar -czf ${{ matrix.arch }}-${{ matrix.branch }}.tar.gz -C dist/${{ matrix.arch }}-${{ matrix.branch }} .
+      
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.arch }}-${{ matrix.branch }}
-          path: |
-            bin/packages/${{ matrix.arch }}/tempstatus/luci-app-temp-status*.ipk
-            bin/packages/${{ matrix.arch }}/tempstatus/luci-i18n-temp-status-*.ipk
-            bin/packages/${{ matrix.arch }}/tempstatus/luci-app-temp-status*.apk
-            bin/packages/${{ matrix.arch }}/tempstatus/luci-i18n-temp-status-*.apk
+          path: ${{ matrix.arch }}-${{ matrix.branch }}.tar.gz
           if-no-files-found: warn
 
   release:
@@ -67,22 +69,13 @@ jobs:
       - name: Extract version from Makefile
         id: version
         run: |
-          VERSION=$(grep -Po '(?<=PKG_VERSION:=)[0-9\.]+' Makefile)
+          VERSION=$(grep -Po '(?<=PKG_VERSION:=)[0-9\.]+' Makefile || echo "0.0.0")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - uses: actions/download-artifact@v4
         with:
           path: ./artifacts
           merge-multiple: false
-
-      - name: Flatten artifact directories
-        run: |
-          mkdir upload
-          for dir in ./artifacts/*; do
-            base=$(basename "$dir")
-            mv "$dir" "upload/$base"
-          done
-          ls -R upload
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -92,6 +85,6 @@ jobs:
           body: |
             自动发布 Build-Packages 构建产物。
             按架构分类存放，方便下载。
-          files: upload/**/*
+          files: artifacts/**/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
