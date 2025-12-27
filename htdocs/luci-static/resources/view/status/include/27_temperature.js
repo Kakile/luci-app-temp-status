@@ -34,32 +34,6 @@ document.head.append(E('style', { 'type': 'text/css' },
 .temp-status-overheat td {
 	color: var(--app-temp-status-font-color) !important;
 }
-.temp-status-unhide-all {
-	display: inline-block;
-	cursor: pointer;
-	margin-left: 0.5em;
-	padding: 2px 4px;
-	border: 1px dotted;
-	border-radius: 4px;
-	opacity: 0.7;
-	font-weight: normal;   /* 不加粗 */
-	font-size: 0.9em;     /* 字号比 Sensor 小 */
-}
-.temp-status-unhide-all:hover {
-	opacity: 0.9;
-}
-.temp-status-hide-item {
-	display: inline-block;
-	cursor: pointer;
-	margin: 0 0.5em 0 0 !important;
-	padding: 0 4px;
-	border: 1px dotted;
-	border-radius: 4px;
-	opacity: 0.7;
-}
-.temp-status-hide-item:hover {
-	opacity: 1.0;
-}
 `));
 
 return baseclass.extend({
@@ -73,7 +47,6 @@ return baseclass.extend({
 	sensorsData : null,
 	tempData    : null,
 	sensorsPath : [],
-	hiddenItems : new Set(),
 
 	// 持久容器引用
 	section     : null,
@@ -101,43 +74,14 @@ return baseclass.extend({
 		return (a.number > b.number) ? 1 : (a.number < b.number) ? -1 : 0;
 	},
 
-	restoreSettingsFromLocalStorage() {
-		let hiddenItems = localStorage.getItem(`luci-app-${this.viewName}-hiddenItems`);
-		if (hiddenItems) {
-			this.hiddenItems = new Set(hiddenItems.split(',').filter(s => s.length > 0));
-		}
-	},
-
-	saveSettingsToLocalStorage() {
-		localStorage.setItem(
-			`luci-app-${this.viewName}-hiddenItems`, Array.from(this.hiddenItems).join(','));
-	},
-
 	makeTempTableContent() {
 		this.tempTable.innerHTML = '';
 
-		// 表头：Sensor + 动态按钮
-		let sensorHeader = E('th', { 'class': 'th left', 'width': '33%' }, _('Sensor'));
-
-		if (this.hiddenItems.size > 0) {
-			let btn = E('span', {
-				'class': 'temp-status-unhide-all',
-				'href': 'javascript:void(0)',
-				'click': () => this.unhideAllItems(),
-			}, [
-				_('Show hidden sensors'),
-				' (',
-				E('span', { 'id': 'temp-status-hnum' }, this.hiddenItems.size),
-				')',
-			]);
-			sensorHeader.appendChild(btn);
-		}
-
+		// 表头：Sensor
 		this.tempTable.append(
 			E('tr', { 'class': 'tr table-titles' }, [
-				sensorHeader,
+				E('th', { 'class': 'th left', 'width': '50%' }, _('Sensor')),
 				E('th', { 'class': 'th left' }, _('Temperature')),
-				E('th', { 'class': 'th right', 'width': '1%' }, ' '),
 			])
 		);
 
@@ -153,8 +97,6 @@ return baseclass.extend({
 					i.sources.sort(this.sortFunc);
 
 					for (let j of i.sources) {
-						if (this.hiddenItems.has(j.path)) continue;
-
 						let temp = this.tempData[j.path];
 						let name = (j.label !== undefined) ? sensor + " / " + j.label :
 							(j.item !== undefined) ? sensor + " / " + j.item.replace(/_input$/, "") : sensor;
@@ -211,17 +153,6 @@ return baseclass.extend({
 									},
 									(temp === undefined || temp === null) ? '-' : temp + ' °C'
 								),
-								E('td', {
-										'class'     : 'td right',
-										'data-title': _('Hide'),
-										'title'     : _('Hide'),
-									},
-									E('span', {
-										'class': 'temp-status-hide-item',
-										'title': _('Hide'),
-										'click': () => this.hideItem(j.path),
-									}, '&#935;'),
-								),
 							])
 						);
 					}
@@ -240,20 +171,7 @@ return baseclass.extend({
 		}
 	},
 
-	hideItem(path) {
-		this.hiddenItems.add(path);
-		this.saveSettingsToLocalStorage();
-		this.makeTempTableContent();
-	},
-
-	unhideAllItems() {
-		this.hiddenItems.clear();
-		this.saveSettingsToLocalStorage();
-		this.makeTempTableContent();
-	},
-
 	load() {
-		this.restoreSettingsFromLocalStorage();
 		if (this.sensorsData) {
 			return (this.sensorsPath.length > 0) ?
 				L.resolveDefault(this.callTempData(this.sensorsPath), null) :
