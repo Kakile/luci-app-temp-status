@@ -44,5 +44,5 @@ jobs:
         with:
           name: luci-app-temp-status_aarch64_cortex-a53
           path: |
-            openwrt-sdk/bin/packages/*/*/*luci-app-temp-status*.ipk
-            openwrt-sdk/bin/packages/*/*/*luci-i18n-*.ipk
+            openwrt-sdk/bin/packages/*/*/*luci-app-temp-status*.apk
+            openwrt-sdk/bin/packages/*/*/*luci-i18n-*.apk
