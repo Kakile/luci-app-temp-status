@@ -23,7 +23,7 @@ jobs:
 
       - name: Download OpenWrt SDK (mediatek filogic)
         run: |
-          wget -qO sdk.tar.zst https://downloads.openwrt.org/releases/25.12.0-rc3/targets/mediatek/filogic/openwrt-sdk-25.12.0-rc3-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+          wget -qO sdk.tar.zst https://downloads.openwrt.org/releases/25.12.2/targets/mediatek/filogic/openwrt-sdk-25.12.2-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst
           tar --use-compress-program=unzstd -xf sdk.tar.zst
           mv openwrt-sdk-* openwrt-sdk
 
