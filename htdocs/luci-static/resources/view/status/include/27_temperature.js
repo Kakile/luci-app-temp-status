@@ -6,11 +6,13 @@ document.head.append(E('style', { 'type': 'text/css' },
 `
 :root {
 	--app-temp-status-font-color: #2e2e2e;
+	--app-temp-status-border-color: var(--border-color-medium, #d4d4d4);
 	--app-temp-status-hot-color: #fff7e2;
 	--app-temp-status-overheat-color: #ffe9e8;
 }
 :root[data-darkmode="true"] {
 	--app-temp-status-font-color: #fff;
+	--app-temp-status-border-color: var(--border-color-medium, #444);
 	--app-temp-status-hot-color: #8d7000;
 	--app-temp-status-overheat-color: #a93734;
 }
@@ -37,9 +39,9 @@ document.head.append(E('style', { 'type': 'text/css' },
 `));
 
 return baseclass.extend({
-	title       : _('Temperature'),
+	title          : _('Temperature'),
 
-	viewName    : 'temp-status',
+	viewName       : 'temp-status',
 
 	tempHot     : 95,
 	tempOverheat: 105,
@@ -51,7 +53,15 @@ return baseclass.extend({
 	// 持久容器引用
 	section     : null,
 
-	tempTable   : E('table', { 'class': 'table' }),
+	hiddenNum      : E('span', {}),
+
+	tempTable      : E('table', { 'class': 'table' }),
+
+	tempArea       : E('div', { 'class': 'temp-status-temp-area' }),
+
+	tempView       : E('div', {}),
+
+	viewType       : 'table',
 
 	callSensors : rpc.declare({
 		object: 'luci.temp-status',
@@ -175,7 +185,7 @@ return baseclass.extend({
 		if (this.sensorsData) {
 			return (this.sensorsPath.length > 0) ?
 				L.resolveDefault(this.callTempData(this.sensorsPath), null) :
-				Promise.resolve(null);
+					Promise.resolve(null);
 		} else {
 			return L.resolveDefault(this.callSensors(), null);
 		}
