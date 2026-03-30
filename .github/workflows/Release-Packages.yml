@@ -1,0 +1,90 @@
+name: Release-Packages
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.arch }}-${{ matrix.branch }} build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - arm_cortex-a7_neon-vfpv4
+          - aarch64_cortex-a53
+          - aarch64_cortex-a72
+          - aarch64_cortex-a76
+          - aarch64_generic
+          - mipsel_24kc
+          - mips64_octeonplus
+          - x86_64
+        branch:
+          - openwrt-23.05
+          - openwrt-24.10
+          - SNAPSHOT
+        exclude:
+          - arch: aarch64_cortex-a76
+            branch: openwrt-23.05
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: prepare package dir
+        run: |
+          mkdir -p luci-app-temp-status
+          mv Makefile luci-app-temp-status/
+          mv htdocs luci-app-temp-status/ || true
+          mv po luci-app-temp-status/ || true
+          mv root luci-app-temp-status/ || true
+
+      - name: build
+        uses: openwrt/gh-action-sdk@main
+        env:
+          ARCH: ${{ matrix.arch }}-${{ matrix.branch }}
+          FEEDNAME: tempstatus
+          PACKAGES: luci-app-temp-status
+          NO_REFRESH_CHECK: true
+          NO_DOWNLOAD: true
+
+      - name: package artifacts
+        run: |
+          mkdir -p dist/${{ matrix.arch }}-${{ matrix.branch }}
+          cp bin/packages/${{ matrix.arch }}/tempstatus/* dist/${{ matrix.arch }}-${{ matrix.branch }}/ || true
+          tar -czf ${{ matrix.arch }}-${{ matrix.branch }}.tar.gz -C dist/${{ matrix.arch }}-${{ matrix.branch }} .
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.arch }}-${{ matrix.branch }}
+          path: ${{ matrix.arch }}-${{ matrix.branch }}.tar.gz
+          if-no-files-found: warn
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 从 Makefile 提取 PKG_VERSION
+      - name: Extract version from Makefile
+        id: version
+        run: |
+          VERSION=$(grep -Po '(?<=PKG_VERSION:=)[0-9\.]+' Makefile || echo "0.0.0")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+          merge-multiple: false
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: "luci-app-temp-status"
+          body: |
+            自动发布 Build-Packages 构建产物。
+            按架构分类存放，方便下载。
+          files: artifacts/**/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

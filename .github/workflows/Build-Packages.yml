@@ -1,0 +1,48 @@
+name: Build-Packages
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout workflow repo
+        uses: actions/checkout@v4
+
+      - name: Checkout luci-app-temp-status
+        uses: actions/checkout@v4
+        with:
+          repository: Kakile/luci-app-temp-status
+          path: luci-app-temp-status
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git-core libncurses5-dev gawk gettext libssl-dev xsltproc unzip zstd
+
+      - name: Download OpenWrt SDK (mediatek filogic)
+        run: |
+          wget -qO sdk.tar.zst https://downloads.openwrt.org/releases/25.12.2/targets/mediatek/filogic/openwrt-sdk-25.12.2-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+          tar --use-compress-program=unzstd -xf sdk.tar.zst
+          mv openwrt-sdk-* openwrt-sdk
+
+      - name: Copy package into SDK
+        run: |
+          cp -r luci-app-temp-status openwrt-sdk/package/luci-app-temp-status
+
+      - name: Build luci-app-temp-status
+        working-directory: openwrt-sdk
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          make defconfig
+          make package/luci-app-temp-status/compile V=s
+
+      - name: Upload artifacts (main + i18n)
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-temp-status_aarch64_cortex-a53
+          path: |
+            openwrt-sdk/bin/packages/*/*/*luci-app-temp-status*.apk
+            openwrt-sdk/bin/packages/*/*/*luci-i18n-*.apk
